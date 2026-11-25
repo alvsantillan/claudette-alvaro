@@ -78,7 +78,7 @@ Todos los módulos están en `src/modules/` y declarados en `imports` del `AppMo
 | `usuarios` | `/usuarios` | Admin de usuarios y clientes |
 | `productos` | `/productos` | Catálogo, detalle de producto, admin de productos |
 | `categorias` | `/categorias` | Páginas de categoría y filtros |
-| `carrito` | `/carrito` | Carrito de compras de cada clienta (requiere token) |
+| `carrito` | `/carrito` | Carrito de compras de cada clienta |
 | `contacto` | `/contacto` | Formulario de contacto (mensajes) |
 
 **Auth**
@@ -145,7 +145,6 @@ Reglas: el email es único; cada clienta tiene un solo carrito activo; no se pue
 - **Registro** (`POST /auth/register`): crea el usuario con el modelo y la base existentes. Para no duplicar la operación, se eligió esta ruta y se quitó `POST /usuarios`. Quien se registra queda como `cliente`.
 - **Contraseñas:** se guardan encriptadas con **bcrypt** y nunca se devuelven en las respuestas.
 - **Login** (`POST /auth/login`): compara la contraseña con bcrypt y devuelve un **JWT** (`access_token`) firmado con `JWT_SECRET`, que dura 1 hora. El token lleva el id, el email y el rol del usuario. Si el email o la contraseña no coinciden responde `401`.
-- **Rutas protegidas:** `AuthGuard` (`src/modules/auth/guards/auth.guard.ts`) verifica el token que llega en el header `Authorization: Bearer <token>`. Protege todas las rutas de `/carrito`, porque el carrito es de una clienta que inició sesión. Sin token, o con un token vencido o inválido, responde `401`.
 
 Usuarios de ejemplo (del seed):
 
@@ -162,8 +161,6 @@ La colección `postman/claudette-api.postman_collection.json` tiene una carpeta 
 2. En Postman: **Import** → elegir el archivo de la colección.
 3. Abrir cada solicitud y hacer clic en **Send**.
 
-Las rutas del carrito requieren token: en la carpeta `carrito`, enviar primero **Login para el carrito**, que guarda el `access_token` en la variable `{{token}}`; las demás solicitudes del carrito lo usan en **Authorization → Bearer Token**.
-
 ## Estructura de carpetas
 
 ```
@@ -179,9 +176,8 @@ claudette-backend/
 │   └── modules/
 │       ├── app/              # Módulo principal: importa a todos los demás
 │       ├── prisma/           # PrismaService, PrismaModule y filtro de errores
-│       ├── auth/             # Registro, login, JWT y AuthGuard
-│       │   ├── dto/          # RegisterDto y LoginDto
-│       │   └── guards/       # AuthGuard (rutas protegidas)
+│       ├── auth/             # Registro, login y JWT
+│       │   └── dto/          # RegisterDto y LoginDto
 │       ├── usuarios/
 │       │   ├── dto/          # Datos que llegan (validados)
 │       │   ├── entities/     # Cómo es un usuario

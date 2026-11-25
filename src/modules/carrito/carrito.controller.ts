@@ -1,12 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
-import { AuthGuard } from '../auth/guards/auth.guard.js';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
 import { CarritoService } from './carrito.service.js';
 import { CreateCarritoDto } from './dto/create-carrito.dto.js';
 import { UpdateCarritoDto } from './dto/update-carrito.dto.js';
 
-// TP 12: todas las rutas del carrito requieren haber iniciado sesión
-// (token JWT en el header Authorization: Bearer <token>).
-@UseGuards(AuthGuard)
 @Controller('carrito')
 export class CarritoController {
   constructor(private readonly carritoService: CarritoService) {}
