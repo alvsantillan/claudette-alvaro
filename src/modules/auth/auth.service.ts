@@ -1,9 +1,9 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
+import { hashPassword, verifyPassword } from './password.util.js';
 
 @Injectable()
 export class AuthService {
@@ -16,7 +16,7 @@ export class AuthService {
     const existe = await this.prisma.usuario.findUnique({ where: { email: dto.email } });
     if (existe) throw new ConflictException('El email ya está registrado');
 
-    const hash = await bcrypt.hash(dto.password, 10);
+    const hash = await hashPassword(dto.password);
     const { password, ...usuario } = await this.prisma.usuario.create({
       data: { nombre: dto.nombre, email: dto.email, password: hash, rol: 'cliente' },
     });
@@ -25,7 +25,7 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const usuario = await this.prisma.usuario.findUnique({ where: { email: dto.email } });
-    const ok = usuario && (await bcrypt.compare(dto.password, usuario.password));
+    const ok = usuario && (await verifyPassword(dto.password, usuario.password));
     if (!ok) throw new UnauthorizedException('Credenciales inválidas');
 
     const payload = { sub: usuario.id, email: usuario.email, rol: usuario.rol };
