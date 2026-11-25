@@ -1,17 +1,17 @@
 import { IsString, IsNotEmpty, IsEmail, MinLength, MaxLength } from 'class-validator';
 
 export class RegisterDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
+  @IsString({ message: 'El nombre debe ser texto' })
+  @IsNotEmpty({ message: 'El nombre es obligatorio' })
+  @MaxLength(100, { message: 'Máximo 100 caracteres' })
   nombre: string;
 
-  @IsEmail()
-  @MaxLength(150)
+  @IsEmail({}, { message: 'El email no es válido' })
+  @MaxLength(150, { message: 'Máximo 150 caracteres' })
   email: string;
 
-  @IsString()
-  @MinLength(6)
-  @MaxLength(72)
+  @IsString({ message: 'La contraseña debe ser texto' })
+  @MinLength(6, { message: 'Mínimo 6 caracteres' })
+  @MaxLength(72, { message: 'Máximo 72 caracteres' })
   password: string;
 }

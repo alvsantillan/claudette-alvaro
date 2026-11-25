@@ -20,7 +20,7 @@ export class CreateCarritoDto {
   usuarioId: number;
 
   @IsOptional()
-  @IsArray()
+  @IsArray({ message: 'Los items deben ser una lista' })
   @ValidateNested({ each: true }) // valida cada item con ItemCarritoDto
   @Type(() => ItemCarritoDto)
   items?: ItemCarritoDto[];

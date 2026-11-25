@@ -23,11 +23,11 @@ export class CreateProductoDto {
   precio: number;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'La imagen debe ser texto' })
   imagen?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'La descripción debe ser texto' })
   descripcion?: string;
 
   @IsInt({ message: 'El stock debe ser un número entero' })
@@ -47,8 +47,8 @@ export class CreateProductoDto {
 
   // ids de la tabla talles, ej: [1, 2, 3] = S, M, L
   @IsOptional()
-  @IsArray()
-  @ArrayUnique()
+  @IsArray({ message: 'Los talles deben ser una lista' })
+  @ArrayUnique({ message: 'Hay talles repetidos' })
   @IsInt({ each: true, message: 'Cada talle debe ser un id numérico' })
   talles?: number[];
 }
