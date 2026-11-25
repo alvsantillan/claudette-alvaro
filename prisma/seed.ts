@@ -1,5 +1,5 @@
 // Datos de ejemplo de Claudette. Se cargan con: npx prisma db seed
-// Vacía las tablas y vuelve a crear todo (los ids empiezan siempre en 1).
+// Cumple el punto E del TP 9: mínimo 5 registros por tabla.
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcrypt';
@@ -10,92 +10,105 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
+  // Vacía todas las tablas y reinicia los ids, así siempre empiezan en 1.
+  // Por eso abajo podemos usar ids fijos (categoriaId: 2, usuarioId: 3, etc.).
   await prisma.$executeRawUnsafe(
     'TRUNCATE TABLE "ItemCarrito", "Carrito", "Contacto", "Producto", "Talle", "Categoria", "Usuario" RESTART IDENTITY CASCADE',
   );
 
-  // ---------- Categorías ----------
-  const cat: Record<string, number> = {};
-  for (const [slug, nombre] of [
-    ['remeras', 'Remeras'], ['vestidos', 'Vestidos'], ['pantalones', 'Pantalones'],
-    ['abrigos', 'Abrigos'], ['calzados', 'Calzado'], ['accesorios', 'Accesorios'],
-  ]) {
-    cat[slug] = (await prisma.categoria.create({ data: { slug, nombre } })).id;
-  }
+  // categoorias
+  await prisma.categoria.createMany({
+    data: [
+      { slug: 'remeras', nombre: 'Remeras' },       // 1
+      { slug: 'vestidos', nombre: 'Vestidos' },     // 2
+      { slug: 'pantalones', nombre: 'Pantalones' }, // 3
+      { slug: 'abrigos', nombre: 'Abrigos' },       // 4
+      { slug: 'calzados', nombre: 'Calzado' },      // 5
+      { slug: 'accesorios', nombre: 'Accesorios' }, // 6
+    ],
+  });
 
-  // ---------- Talles ----------
-  const talle: Record<string, number> = {};
-  for (const nombre of ['S', 'M', 'L', '36', '37', '38', '39', '40', 'Único']) {
-    talle[nombre] = (await prisma.talle.create({ data: { nombre } })).id;
-  }
-  const ropa = ['S', 'M', 'L'];
-  const calzado = ['36', '37', '38', '39', '40'];
+  // Talles (ids 1 a 9) 
+  await prisma.talle.createMany({
+    data: [
+      { nombre: 'S' },  { nombre: 'M' },  { nombre: 'L' },                      // 1, 2, 3
+      { nombre: '36' }, { nombre: '37' }, { nombre: '38' }, { nombre: '39' }, { nombre: '40' }, // 4 a 8
+      { nombre: 'Único' },                                                      // 9
+    ],
+  });
 
-  // ---------- Productos (los mismos del frontend) ----------
+  // Productos (ids 1 a 6, uno por categoría) 
+  // Los talles se conectan con "connect" porque es una relación de muchos a muchos.
+  const ropa = [{ id: 1 }, { id: 2 }, { id: 3 }];                         // S, M, L
+  const calzado = [{ id: 4 }, { id: 5 }, { id: 6 }, { id: 7 }, { id: 8 }]; // 36 a 40
+
   const productos = [
-    { nombre: 'Vestido Floral', precio: 45900, imagen: '/img/ui/claudete-vestido.jpg', descripcion: 'Vestido floral de temporada, ideal para ocasiones especiales.', stock: 8, destacado: true, categoria: 'vestidos', talles: ropa },
-    { nombre: 'Blusa Elegance', precio: 32500, imagen: '/img/productos/Remera.jpeg', descripcion: 'Blusa elegante y cómoda para combinar con diferentes prendas.', stock: 12, destacado: true, categoria: 'remeras', talles: ropa },
-    { nombre: 'Jean Classic', precio: 52900, imagen: '/img/productos/Pantalon.jpeg', descripcion: 'Jean clásico de corte moderno y cómodo.', stock: 10, destacado: true, categoria: 'pantalones', talles: ropa },
-    { nombre: 'Campera Urbana', precio: 78900, imagen: '/img/ui/campera-jean-claudette.jpg', descripcion: 'Campera urbana para los días fríos.', stock: 5, destacado: true, categoria: 'abrigos', talles: ropa },
-    { nombre: 'Top Básico', precio: 19900, imagen: '/img/productos/images.jpg', descripcion: 'Top básico y versátil para cualquier ocasión.', stock: 15, categoria: 'remeras', talles: ropa },
-    { nombre: 'Abrigo Soft', precio: 89900, imagen: '/img/productos/abrigo.jpeg', descripcion: 'Abrigo cómodo y moderno para la temporada de invierno.', stock: 4, activo: false, categoria: 'abrigos', talles: ropa },
-    { nombre: 'Remera básica', precio: 18500, imagen: '/img/productos/Remera.jpeg', descripcion: 'Remera de algodón suave, corte clásico. Combina con todo y es ideal para el uso diario.', stock: 20, categoria: 'remeras', talles: ropa },
-    { nombre: 'Vestido floreado', precio: 45000, imagen: '/img/ui/claudete-vestido.jpg', descripcion: 'Vestido floreado de tela liviana, corte suelto y mangas cortas. Ideal para primavera y verano.', stock: 7, categoria: 'vestidos', talles: ropa },
-    { nombre: 'Pantalón de lino', precio: 38000, imagen: '/img/productos/Pantalon.jpeg', descripcion: 'Pantalón de lino fresco, corte recto y cómodo. Perfecto para los días de calor.', stock: 9, categoria: 'pantalones', talles: ropa },
-    { nombre: 'Sandalias de verano', precio: 29000, imagen: '/img/productos/calzado.jpg', descripcion: 'Sandalias cómodas y livianas, pensadas para el día a día en la temporada cálida.', stock: 6, categoria: 'calzados', talles: calzado },
-    { nombre: 'Cartera Mini', precio: 34900, descripcion: 'Cartera chica de mano con correa desmontable.', stock: 6, categoria: 'accesorios', talles: ['Único'] },
+    { nombre: 'Vestido Floral', precio: 45900, imagen: '/img/ui/claudete-vestido.jpg', descripcion: 'Vestido floral de temporada, ideal para ocasiones especiales.', stock: 8, destacado: true, categoriaId: 2, talles: { connect: ropa } },
+    { nombre: 'Blusa Elegance', precio: 32500, imagen: '/img/productos/Remera.jpeg', descripcion: 'Blusa elegante y cómoda para combinar con diferentes prendas.', stock: 12, destacado: true, categoriaId: 1, talles: { connect: ropa } },
+    { nombre: 'Jean Classic', precio: 52900, imagen: '/img/productos/Pantalon.jpeg', descripcion: 'Jean clásico de corte moderno y cómodo.', stock: 10, destacado: true, categoriaId: 3, talles: { connect: ropa } },
+    { nombre: 'Campera Urbana', precio: 78900, imagen: '/img/ui/campera-jean-claudette.jpg', descripcion: 'Campera urbana para los días fríos.', stock: 5, destacado: true, categoriaId: 4, talles: { connect: ropa } },
+    { nombre: 'Sandalias de verano', precio: 29000, imagen: '/img/productos/calzado.jpg', descripcion: 'Sandalias cómodas y livianas para la temporada cálida.', stock: 6, categoriaId: 5, talles: { connect: calzado } },
+    { nombre: 'Cartera Mini', precio: 34900, descripcion: 'Cartera chica de mano con correa desmontable.', stock: 6, categoriaId: 6, talles: { connect: [{ id: 9 }] } },
   ];
-  const prod: number[] = [];
-  for (const { categoria, talles, ...datos } of productos) {
-    const p = await prisma.producto.create({
-      data: { ...datos, categoriaId: cat[categoria], talles: { connect: talles.map((t) => ({ id: talle[t] })) } },
-    });
-    prod.push(p.id);
+  // createMany no permite conectar relaciones, por eso se crean de a uno.
+  for (const producto of productos) {
+    await prisma.producto.create({ data: producto });
   }
 
-  // ---------- Usuarios: 2 admin y 5 clientes (contraseñas encriptadas con bcrypt) ----------
+  //Usuarios (ids 1 a 7): 2 admin y 5 clientas
+  //Las contraseñas se guardan encriptadas con bcrypt, igual que en /auth/register.
   const admin = await bcrypt.hash('admin123', 10);
   const cliente = await bcrypt.hash('cliente123', 10);
-  const usuarios = [
-    { nombre: 'Claudia', email: 'claudia@claudette.com', password: admin, rol: 'admin' },
-    { nombre: 'Admin Ventas', email: 'ventas@claudette.com', password: admin, rol: 'admin' },
-    { nombre: 'Sofía Martínez', email: 'sofia.martinez@email.com', password: cliente },
-    { nombre: 'Lucía Fernández', email: 'lucia.f@email.com', password: cliente },
-    { nombre: 'Camila Gómez', email: 'camila.gomez@email.com', password: cliente },
-    { nombre: 'Valentina Rossi', email: 'vale.rossi@email.com', password: cliente },
-    { nombre: 'Martina López', email: 'martina.lopez@email.com', password: cliente },
-  ];
-  const usr: number[] = [];
-  for (const u of usuarios) usr.push((await prisma.usuario.create({ data: u })).id);
-  const [, , sofia, lucia, camila, valentina, martina] = usr;
-
-  // ---------- Carritos (uno por clienta) ----------
-  const item = (p: number, t: string, cantidad: number) => ({
-    productoId: prod[p], talleId: talle[t], cantidad, precioUnitario: productos[p].precio,
+  await prisma.usuario.createMany({
+    data: [
+      { nombre: 'Claudia', email: 'claudia@claudette.com', password: admin, rol: 'admin' },     // 1
+      { nombre: 'Admin Ventas', email: 'ventas@claudette.com', password: admin, rol: 'admin' }, // 2
+      { nombre: 'Sofía Martínez', email: 'sofia.martinez@email.com', password: cliente },       // 3
+      { nombre: 'Lucía Fernández', email: 'lucia.f@email.com', password: cliente },             // 4
+      { nombre: 'Camila Gómez', email: 'camila.gomez@email.com', password: cliente },           // 5
+      { nombre: 'Valentina Rossi', email: 'vale.rossi@email.com', password: cliente },          // 6
+      { nombre: 'Martina López', email: 'martina.lopez@email.com', password: cliente },         // 7
+    ],
   });
-  const carritos = [
-    { usuarioId: sofia, estado: 'activo', items: [item(0, 'M', 1), item(6, 'S', 2)] },
-    { usuarioId: lucia, estado: 'activo', items: [item(2, 'L', 1)] },
-    { usuarioId: camila, estado: 'confirmado', items: [item(9, '38', 1), item(10, 'Único', 1)] },
-    { usuarioId: valentina, estado: 'activo', items: [item(3, 'M', 1)] },
-    { usuarioId: martina, estado: 'cancelado', items: [item(4, 'S', 3)] },
-  ];
-  for (const { items, ...c } of carritos) {
-    await prisma.carrito.create({ data: { ...c, items: { create: items } } });
-  }
 
-  // ---------- Mensajes de contacto: 4 de clientas registradas y 2 sin cuenta ----------
+  // Carritos (ids 1 a 5, uno por clienta)
+  await prisma.carrito.createMany({
+    data: [
+      { usuarioId: 3, estado: 'activo' },     // 1 Sofía
+      { usuarioId: 4, estado: 'activo' },     // 2 Lucía
+      { usuarioId: 5, estado: 'confirmado' }, // 3  Camila
+      { usuarioId: 6, estado: 'activo' },     // 4  Valentina
+      { usuarioId: 7, estado: 'cancelado' },  // 5 Martina
+    ],
+  });
+
+  //  Productos dentro de cada carrito 
+  // precioUnitario = precio del producto al momento de agregarlo
+  await prisma.itemCarrito.createMany({
+    data: [
+      { carritoId: 1, productoId: 1, talleId: 2, cantidad: 1, precioUnitario: 45900 }, // Vestido M
+      { carritoId: 1, productoId: 2, talleId: 1, cantidad: 2, precioUnitario: 32500 }, // Blusa S
+      { carritoId: 2, productoId: 3, talleId: 3, cantidad: 1, precioUnitario: 52900 }, // Jean L
+      { carritoId: 3, productoId: 5, talleId: 6, cantidad: 1, precioUnitario: 29000 }, // Sandalias 38
+      { carritoId: 3, productoId: 6, talleId: 9, cantidad: 1, precioUnitario: 34900 }, // Cartera Único
+      { carritoId: 4, productoId: 4, talleId: 2, cantidad: 1, precioUnitario: 78900 }, // Campera M
+      { carritoId: 5, productoId: 2, talleId: 1, cantidad: 3, precioUnitario: 32500 }, // Blusa S
+    ],
+  });
+
+  
   await prisma.contacto.createMany({
     data: [
-      { usuarioId: sofia, nombre: 'Sofía Martínez', email: 'sofia.martinez@email.com', motivo: 'talles', mensaje: '¿El Vestido Floral viene en talle L?' },
-      { usuarioId: lucia, nombre: 'Lucía Fernández', email: 'lucia.f@email.com', motivo: 'envios', mensaje: '¿Hacen envíos a Yerba Buena?' },
-      { usuarioId: camila, nombre: 'Camila Gómez', email: 'camila.gomez@email.com', motivo: 'cambios', mensaje: 'Quiero cambiar las sandalias por un talle más.' },
-      { usuarioId: sofia, nombre: 'Sofía Martínez', email: 'sofia.martinez@email.com', motivo: 'consulta', mensaje: '¿Cuándo llegan los abrigos de temporada?' },
+      { usuarioId: 3, nombre: 'Sofía Martínez', email: 'sofia.martinez@email.com', motivo: 'talles', mensaje: '¿El Vestido Floral viene en talle L?' },
+      { usuarioId: 4, nombre: 'Lucía Fernández', email: 'lucia.f@email.com', motivo: 'envios', mensaje: '¿Hacen envíos a Yerba Buena?' },
+      { usuarioId: 5, nombre: 'Camila Gómez', email: 'camila.gomez@email.com', motivo: 'cambios', mensaje: 'Quiero cambiar las sandalias por un talle más.' },
+      { usuarioId: 3, nombre: 'Sofía Martínez', email: 'sofia.martinez@email.com', motivo: 'consulta', mensaje: '¿Cuándo llegan los abrigos de temporada?' },
       { nombre: 'Ana Ruiz', email: 'ana.ruiz@email.com', motivo: 'consulta', mensaje: '¿Cuál es el horario del local?' },
       { nombre: 'Paula Díaz', email: 'paula.diaz@email.com', telefono: '+54 9 381 777-8888', motivo: 'consulta', mensaje: '¿Aceptan transferencia?' },
     ],
   });
 
+  // Muestra cuántos registros quedaron en cada tabla 
   console.table({
     categorias: await prisma.categoria.count(),
     talles: await prisma.talle.count(),
